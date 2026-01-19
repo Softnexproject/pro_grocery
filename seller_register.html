@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seller Registration</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+  <h2>Seller Create Account</h2>
+
+  <input id="shopName" placeholder="Shop Name">
+  <input id="ownerName" placeholder="Shopkeeper Name">
+  <input id="age" type="number" placeholder="Age">
+  <input id="address" placeholder="Shop Address">
+  <input id="phone" placeholder="Phone Number">
+  <input id="photo" type="file">
+  <input id="upi" type="file">
+
+  <button onclick="registerSeller()">Create Account</button>
+</div>
+
+<script>
+function registerSeller() {
+  const seller = {
+    shopName: shopName.value,
+    ownerName: ownerName.value,
+    age: age.value,
+    address: address.value,
+    phone: phone.value,
+    items: []
+  };
+
+  localStorage.setItem("seller", JSON.stringify(seller));
+  location.href = "seller.html";
+}
+</script>
+
+</body>
+</html>

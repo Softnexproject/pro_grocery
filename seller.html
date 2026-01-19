@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seller Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div id="sellerInfo"></div>
+</header>
+
+<div class="container">
+  <h3>Add Grocery Item</h3>
+
+  <input id="itemName" placeholder="Item Name">
+  <input id="price" type="number" placeholder="Price">
+  <input id="mfg" type="date">
+  <input id="exp" type="date">
+  <input id="weight" placeholder="Weight">
+  <input id="qty" type="number" placeholder="Quantity">
+
+  <button onclick="addItem()">Add Item</button>
+
+  <h3>Available Items</h3>
+  <div id="itemList"></div>
+</div>
+
+<script>
+let seller = JSON.parse(localStorage.getItem("seller"));
+
+document.getElementById("sellerInfo").innerHTML =
+  seller.ownerName + " | " + seller.shopName;
+
+function addItem() {
+  let existing = seller.items.find(i => i.name === itemName.value);
+
+  if (existing) {
+    existing.qty += Number(qty.value);
+  } else {
+    seller.items.push({
+      name: itemName.value,
+      price: price.value,
+      mfg: mfg.value,
+      exp: exp.value,
+      weight: weight.value,
+      qty: Number(qty.value)
+    });
+  }
+
+  localStorage.setItem("seller", JSON.stringify(seller));
+  displayItems();
+}
+
+function displayItems() {
+  itemList.innerHTML = "";
+  seller.items.forEach(i => {
+    itemList.innerHTML += `
+      <div class="card">
+        ${i.name} | ₹${i.price} | Qty: ${i.qty}
+      </div>`;
+  });
+}
+
+displayItems();
+</script>
+
+</body>
+</html>

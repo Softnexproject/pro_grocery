@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Customer Page</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+  <h3>Available Grocery Items</h3>
+  <div id="products"></div>
+
+  <button onclick="location.href='cart.html'">Go to Cart</button>
+</div>
+
+<script>
+let seller = JSON.parse(localStorage.getItem("seller"));
+let cart = JSON.parse(localStorage.getItem("cart"));
+
+seller.items.forEach(i => {
+  products.innerHTML += `
+    <div class="card">
+      ${i.name} - ₹${i.price}
+      <button onclick="addToCart('${i.name}', ${i.price})">Add</button>
+    </div>`;
+});
+
+function addToCart(name, price) {
+  cart.push({ name, price });
+  localStorage.setItem("cart", JSON.stringify(cart));
+}
+</script>
+
+</body>
+</html>
