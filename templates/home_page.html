@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Grocery Shop</title>  
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main>
+  <div  class="space">
+  <h1>Welcome to Online Grocery Web</h1>
+  </div>
+
+  <nav class="navbar">
+        <ul>
+            <li><a href="index1.html">Home</a></li>
+            <li><a href="index2.html">About</a></li>
+            <li><a href="index3.html">Services</a></li>
+            <li><a href="index4.html">Contact</a></li>
+        </ul>
+  </nav>
+
+<div class="container">
+  
+  <h2>Select User Type</h2>
+
+  <a href="/seller_register">
+    <button class="user-button" >
+    Seller
+    </button>
+  </a>
+
+  <button class="user-button" onclick="window.open('customer_register.html','_blank')">
+    Customer
+  </button>
+</div>
+</main>
+
+<footer>
+  <p> © 2026 Softnex| College Project | Online Grocery Web</p>
+</footer>
+</body>
+</html>
