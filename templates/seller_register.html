@@ -3,36 +3,99 @@
 <head>
   <title>Seller Registration</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  
+</head>
 <body>
 
 <div class="container">
   <h2>Seller Create Account</h2>
 
-  <input id="shopName" placeholder="Shop Name">
-  <input id="ownerName" placeholder="Shopkeeper Name">
-  <input id="DOB" type="number" placeholder="DOB">
-  <input id="address" placeholder="Shop Address">
-  <input id="phone" placeholder="Phone Number">
-  <input id="upi" placeholder="UPI ID">
+  <input id="shopName" placeholder="Shop Name" />
+  <input id="ownerName" placeholder="Shopkeeper Name" />
 
-  <button onclick="registerSeller()">Create Account</button>
+  <label for="dob">Date of Birth</label>
+  <input id="dob" type="date" />
+
+  <input id="address" placeholder="Shop Address" />
+  <input id="phone" placeholder="Phone Number" />
+
+  <button type="button" onclick="registerSeller()">Create Account</button>
+
+  <div style="margin-top: 12px;">
+    <a href="/seller-portal">
+      <button class="user-button" type="button">Back to Seller Portal</button>
+    </a>
+  </div>
 </div>
 
 <script>
+function loadSellers() {
+  try {
+    const raw = localStorage.getItem("sellers");
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSellers(sellers) {
+  localStorage.setItem("sellers", JSON.stringify(sellers));
+}
+
+function makeId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+}
+
 function registerSeller() {
+  const shop = (shopName.value || "").trim();
+  const owner = (ownerName.value || "").trim();
+  const dobVal = (dob.value || "").trim(); // YYYY-MM-DD from <input type="date">
+  const addr = (address.value || "").trim();
+  const ph = (phone.value || "").trim();
+
+  if (!shop || !owner || !dobVal || !addr || !ph) {
+    alert("Please fill Shop Name, Shopkeeper Name, Date of Birth, Address, and Phone.");
+    return;
+  }
+
+  const dobDate = new Date(dobVal);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (Number.isNaN(dobDate.getTime()) || dobDate > today) {
+    alert("Please enter a valid Date of Birth (not in the future).");
+    return;
+  }
+
+  if (!/^[0-9]{10,15}$/.test(ph)) {
+    alert("Phone must be 10–15 digits.");
+    return;
+  }
+
+  const sellers = loadSellers();
+  const phoneExists = sellers.some(s => String(s.phone) === ph);
+  if (phoneExists) {
+    alert("A seller with this phone already exists.");
+    return;
+  }
+
   const seller = {
-    shopName: shopName.value,
-    ownerName: ownerName.value,
-    DOB: DOB.value,
-    address: address.value,
-    phone: phone.value,
-    upi: upi.value,
+    id: makeId(),
+    shopName: shop,
+    ownerName: owner,
+    dob: dobVal,
+    address: addr,
+    phone: ph,
     items: []
   };
 
-  localStorage.setItem("seller", JSON.stringify(seller));
-  location.href = "seller_register.html";
+  sellers.push(seller);
+  saveSellers(sellers);
+
+  sessionStorage.setItem("activeSellerId", seller.id);
+
+  alert("Seller Registered Successfully");
+  window.location.href = "/seller";
 }
 </script>
 

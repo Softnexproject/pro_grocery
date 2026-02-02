@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Registered Sellers</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h2>Registered Sellers</h2>
+    <div id="status"></div>
+    <div id="sellersList"></div>
+
+    <div style="margin-top: 16px;">
+      <a href="/"><button type="button">Back to Home</button></a>
+      <a href="/seller_register"><button type="button">Register Seller</button></a>
+    </div>
+  </div>
+
+<script>
+function loadSellersCompat() {
+  // Preferred: localStorage["sellers"] = [...]
+  try {
+    const raw = localStorage.getItem("sellers");
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+
+  // Back-compat: localStorage["seller"] = { ... }
+  try {
+    const oneRaw = localStorage.getItem("seller");
+    const one = oneRaw ? JSON.parse(oneRaw) : null;
+    if (one && typeof one === "object") return [one];
+  } catch {}
+
+  return [];
+}
+
+function esc(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function setActiveSellerId(id) {
+  if (!id) return;
+  sessionStorage.setItem("activeSellerId", id);
+  localStorage.setItem("activeSellerId", id);
+}
+
+function manageSellerItems(id) {
+  setActiveSellerId(id);
+  window.location.href = "/seller";
+}
+
+function render() {
+  const sellers = loadSellersCompat();
+  const status = document.getElementById("status");
+  const root = document.getElementById("sellersList");
+
+  if (!sellers.length) {
+    status.textContent = "No sellers registered yet.";
+    root.innerHTML = "";
+    return;
+  }
+
+  status.textContent = `Total sellers: ${sellers.length}`;
+  root.innerHTML = sellers.map((s, idx) => `
+    <div class="card" style="padding: 12px; margin: 10px 0;">
+      <strong>#${idx + 1} ${esc(s.shopName || "(No shop name)")}</strong><br>
+      Owner: ${esc(s.ownerName)}<br>
+      DOB: ${esc(s.dob)}<br>
+      Phone: ${esc(s.phone)}<br>
+      Address: ${esc(s.address)}<br>
+      Items: ${Array.isArray(s.items) ? s.items.length : 0}
+      <div style="margin-top: 10px;">
+        <a href="/seller-items?id=${encodeURIComponent(s.id || "")}&phone=${encodeURIComponent(s.phone || "")}&idx=${idx}">
+          <button class="user-button" type="button">View Items</button>
+        </a>
+
+        <button class="user-button" type="button" style="margin-left: 8px;" onclick="manageSellerItems('${String(s.id || "").replaceAll("'", "\\'")}')">
+          Manage Items
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+render();
+</script>
+</body>
+</html>

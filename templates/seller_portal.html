@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seller Portal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+  <h2>Seller</h2>
+  <p>Please choose an option:</p>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+    <a href="/seller">
+      <button class="user-button" type="button">Seller Dashboard (Add/Edit Items)</button>
+    </a>
+
+    <a href="/seller_register">
+      <button class="user-button" type="button">New Seller Registration</button>
+    </a>
+
+    <a href="/sellers">
+      <button class="user-button" type="button">Existing Sellers List</button>
+    </a>
+
+    <a href="/">
+      <button class="user-button" type="button">Back to Home</button>
+    </a>
+  </div>
+</div>
+
+</body>
+</html>

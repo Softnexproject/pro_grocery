@@ -15,8 +15,6 @@
 
   <input id="itemName" placeholder="Item Name">
   <input id="price" type="number" placeholder="Price">
-  <input id="mfg" type="date">
-  <input id="exp" type="date">
   <input id="weight" placeholder="Weight">
   <input id="qty" type="number" placeholder="Quantity">
 
@@ -41,8 +39,6 @@ function addItem() {
     seller.items.push({
       name: itemName.value,
       price: price.value,
-      mfg: mfg.value,
-      exp: exp.value,
       weight: weight.value,
       qty: Number(qty.value)
     });

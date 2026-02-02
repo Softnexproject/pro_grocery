@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seller Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header>
+  <div id="sellerInfo"></div>
+</header>
+
+<div class="container">
+  <h3>Add Grocery Item</h3>
+
+  <div id="editBanner" class="card" style="display:none; padding: 10px; margin: 10px 0;">
+    <strong>Editing item</strong>
+    <span id="editName" style="margin-left: 6px;"></span>
+    <div style="margin-top: 8px; display:flex; gap: 10px; flex-wrap: wrap;">
+      <button type="button" class="user-button" onclick="cancelEdit()">Cancel Edit</button>
+      <button type="button" class="user-button" onclick="resetFormForNew()">Add New Item</button>
+    </div>
+  </div>
+
+  <input id="itemName" placeholder="Item Name">
+  <input id="price" type="number" placeholder="Price">
+  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <input id="qty" type="number" placeholder="Quantity" style="flex: 1; min-width: 140px;">
+    <select id="qtyType" style="flex: 1; min-width: 140px;">
+      <option value="pcs">pcs</option>
+      <option value="kg">kg</option>
+      <option value="g">g</option>
+      <option value="litre">litre</option>
+      <option value="ml">ml</option>
+      <option value="pack">pack</option>
+    </select>
+  </div>
+
+  <label for="itemImage" style="display:block; margin-top: 10px;">Item Picture (optional)</label>
+  <input id="itemImage" type="file" accept="image/*">
+
+  <div id="imagePreviewWrap" style="display:none; margin-top: 10px;">
+    <div style="margin-bottom: 6px;">Current picture:</div>
+    <img id="imagePreview" alt="Item picture" style="width: 110px; height: 110px; object-fit: cover; border-radius: 10px;" />
+    <div style="margin-top: 8px;">
+      <button type="button" class="user-button" onclick="removeCurrentImage()">Remove Picture</button>
+    </div>
+  </div>
+
+  <button id="submitBtn" type="button" onclick="addItem()">Add Item</button>
+
+  <h3>Available Items</h3>
+  <div id="itemList"></div>
+</div>
+
+<script>
+function loadSellers() {
+  try {
+    const raw = localStorage.getItem("sellers");
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    // continue to legacy fallback
+  }
+
+  // Back-compat: localStorage["seller"] = { ... }
+  try {
+    const oneRaw = localStorage.getItem("seller");
+    const one = oneRaw ? JSON.parse(oneRaw) : null;
+    if (one && typeof one === "object") {
+      // Ensure minimal shape
+      if (!Array.isArray(one.items)) one.items = [];
+      if (!one.id) {
+        one.id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+      }
+      return [one];
+    }
+  } catch {}
+
+  return [];
+}
+
+function saveSellers(sellers) {
+  localStorage.setItem("sellers", JSON.stringify(sellers));
+}
+
+function getActiveSellerId() {
+  return sessionStorage.getItem("activeSellerId") || localStorage.getItem("activeSellerId");
+}
+
+function setActiveSellerId(id) {
+  sessionStorage.setItem("activeSellerId", id);
+  localStorage.setItem("activeSellerId", id);
+}
+
+let sellers = loadSellers();
+let activeSellerId = getActiveSellerId();
+
+let sellerIndex = sellers.findIndex(s => s.id === activeSellerId);
+if (sellerIndex === -1 && sellers.length > 0) {
+  // fallback: use last registered seller
+  sellerIndex = sellers.length - 1;
+  setActiveSellerId(sellers[sellerIndex].id);
+}
+
+if (sellerIndex === -1) {
+  alert("No seller found. Please register first.");
+  window.location.href = "/seller_register";
+}
+
+function seller() {
+  return sellers[sellerIndex];
+}
+
+document.getElementById("sellerInfo").textContent =
+  seller().ownerName + " | " + seller().shopName;
+
+let editingItemId = null;
+let pendingRemoveImage = false;
+
+function makeItemId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+}
+
+function normalizeItems(s) {
+  s.items = Array.isArray(s.items) ? s.items : [];
+  // Ensure every item has a stable id
+  let changed = false;
+  s.items.forEach(it => {
+    if (!it.id) {
+      it.id = makeItemId();
+      changed = true;
+    }
+  });
+  if (changed) {
+    sellers[sellerIndex] = s;
+    saveSellers(sellers);
+  }
+}
+
+normalizeItems(seller());
+
+function setEditMode(item) {
+  editingItemId = item ? (item.id || null) : null;
+  pendingRemoveImage = false;
+
+  const banner = document.getElementById("editBanner");
+  const editName = document.getElementById("editName");
+  const submitBtn = document.getElementById("submitBtn");
+
+  if (editingItemId) {
+    banner.style.display = "block";
+    editName.textContent = item?.name ? `(${item.name})` : "";
+    submitBtn.textContent = "Save Changes";
+  } else {
+    banner.style.display = "none";
+    editName.textContent = "";
+    submitBtn.textContent = "Add Item";
+  }
+}
+
+function updateImagePreview(dataUrl) {
+  const wrap = document.getElementById("imagePreviewWrap");
+  const img = document.getElementById("imagePreview");
+  if (dataUrl) {
+    img.src = dataUrl;
+    wrap.style.display = "block";
+  } else {
+    img.removeAttribute("src");
+    wrap.style.display = "none";
+  }
+}
+
+function removeCurrentImage() {
+  pendingRemoveImage = true;
+  updateImagePreview(null);
+}
+
+function resetFormForNew() {
+  setEditMode(null);
+  itemName.value = "";
+  price.value = "";
+  qty.value = "";
+  qtyType.value = "pcs";
+  if (itemImage) itemImage.value = "";
+  updateImagePreview(null);
+}
+
+function cancelEdit() {
+  resetFormForNew();
+}
+
+function findItemIndexByIdOrName(items, id, name) {
+  if (id) {
+    const byId = items.findIndex(i => String(i.id || "") === String(id));
+    if (byId !== -1) return byId;
+  }
+  if (name) {
+    const lower = String(name).toLowerCase();
+    return items.findIndex(i => String(i.name || "").toLowerCase() === lower);
+  }
+  return -1;
+}
+
+function startEditItem(itemId) {
+  const s = seller();
+  normalizeItems(s);
+  const idx = findItemIndexByIdOrName(s.items, itemId, null);
+  if (idx === -1) {
+    alert("Item not found.");
+    return;
+  }
+
+  const it = s.items[idx];
+  itemName.value = it.name ?? "";
+  price.value = it.price ?? "";
+  qty.value = it.qty ?? "";
+  qtyType.value = it.qtyType || it.quantityType || "pcs";
+  if (itemImage) itemImage.value = ""; // cannot prefill file input
+  updateImagePreview(it.imageDataUrl || null);
+  setEditMode(it);
+}
+
+function fileToDataUrlResized(file, maxW = 420, maxH = 420, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Failed to read image"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Invalid image"));
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        const scale = Math.min(1, maxW / w, maxH / h);
+        w = Math.max(1, Math.round(w * scale));
+        h = Math.max(1, Math.round(h * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // Use JPEG to keep size small; good enough for thumbnails.
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function addItem() {
+  const name = (itemName.value || "").trim();
+  const priceVal = Number(price.value);
+  const qtyVal = Number(qty.value);
+  const qtyTypeVal = (qtyType.value || "pcs").trim();
+
+  if (!name) {
+    alert("Item Name is required.");
+    return;
+  }
+  if (!Number.isFinite(priceVal) || priceVal <= 0) {
+    alert("Price must be a positive number.");
+    return;
+  }
+  if (!Number.isFinite(qtyVal) || qtyVal <= 0) {
+    alert("Quantity must be a positive number.");
+    return;
+  }
+  if (!qtyTypeVal) {
+    alert("Please select a quantity type.");
+    return;
+  }
+
+  let imageDataUrl = null;
+  const file = (itemImage && itemImage.files && itemImage.files[0]) ? itemImage.files[0] : null;
+  if (file) {
+    // Guard against localStorage limits (often ~5MB total). Resize to keep it small.
+    if (file.size > 3 * 1024 * 1024) {
+      alert("Image is too large. Please choose an image under 3MB.");
+      return;
+    }
+
+    try {
+      imageDataUrl = await fileToDataUrlResized(file);
+      // Very rough size check (base64 expands size). Helps avoid localStorage overflow.
+      if (imageDataUrl.length > 650_000) {
+        alert("Image is still too large after resizing. Please choose a smaller image.");
+        return;
+      }
+    } catch {
+      alert("Could not read the image. Please try a different file.");
+      return;
+    }
+  }
+
+  const s = seller();
+  normalizeItems(s);
+
+  // If editing, we update the selected item.
+  // If not editing, we merge with an existing item of same name (current behavior).
+  const editingIndex = editingItemId ? findItemIndexByIdOrName(s.items || [], editingItemId, null) : -1;
+  const existingIndexByName = (!editingItemId) ? findItemIndexByIdOrName(s.items || [], null, name) : -1;
+  const targetIndex = editingIndex !== -1 ? editingIndex : existingIndexByName;
+
+  // Prevent duplicates when editing and changing name to an existing other item
+  if (editingItemId && editingIndex !== -1) {
+    const dup = (s.items || []).findIndex(i => String(i.id || "") !== String(editingItemId) && String(i.name || "").toLowerCase() === name.toLowerCase());
+    if (dup !== -1) {
+      alert("Another item with this name already exists. Please choose a different name.");
+      return;
+    }
+  }
+
+  if (targetIndex !== -1) {
+    const existing = s.items[targetIndex];
+    existing.name = name;
+    existing.price = priceVal;
+    existing.qtyType = qtyTypeVal;
+
+    if (editingItemId) {
+      // Edit mode: set quantity exactly
+      existing.qty = qtyVal;
+    } else {
+      // Add mode: increase quantity
+      existing.qty = Number(existing.qty || 0) + qtyVal;
+    }
+
+    if (pendingRemoveImage) {
+      existing.imageDataUrl = null;
+    }
+    if (imageDataUrl) {
+      existing.imageDataUrl = imageDataUrl;
+    }
+  } else {
+    // New item
+    s.items = s.items || [];
+    s.items.push({
+      id: makeItemId(),
+      name,
+      price: priceVal,
+      qty: qtyVal,
+      qtyType: qtyTypeVal,
+      imageDataUrl
+    });
+  }
+
+  sellers[sellerIndex] = s;
+  saveSellers(sellers);
+
+  // Reset form after save
+  resetFormForNew();
+
+  displayItems();
+}
+
+function displayItems() {
+  const s = seller();
+  const list = s.items || [];
+  itemList.innerHTML = "";
+
+  list.forEach(i => {
+    const qtyTypeSafe = i.qtyType || i.quantityType || "pcs";
+    const img = i.imageDataUrl ? `<img src="${i.imageDataUrl}" alt="${i.name}" style="width: 72px; height: 72px; object-fit: cover; border-radius: 8px;" />` : "";
+    itemList.innerHTML += `
+      <div class="card" style="display:flex; gap: 12px; align-items: center; padding: 12px; margin: 10px 0;">
+        ${img}
+        <div>
+          <div><strong>${i.name}</strong></div>
+          <div>₹${i.price} | Qty: ${i.qty} ${qtyTypeSafe}</div>
+          <div style="margin-top: 8px; display:flex; gap: 10px; flex-wrap: wrap;">
+            <button type="button" class="user-button" onclick="startEditItem('${String(i.id || "").replaceAll("'", "\\'")}')">Edit</button>
+          </div>
+        </div>
+      </div>`;
+  });
+}
+
+displayItems();
+</script>
+
+</body>
+</html>

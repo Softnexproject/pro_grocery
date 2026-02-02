@@ -11,7 +11,10 @@
 
   <input id="shopName" placeholder="Shop Name">
   <input id="ownerName" placeholder="Shopkeeper Name">
-  <input id="age" type="number" placeholder="Age">
+
+  <label for="dob">Date of Birth</label>
+  <input id="dob" type="date">
+
   <input id="address" placeholder="Shop Address">
   <input id="phone" placeholder="Phone Number">
   <input id="photo" type="file">
@@ -22,15 +25,22 @@
 
 <script>
 function registerSeller() {
+  const dobVal = (dob.value || "").trim();
+  if (!dobVal) {
+    alert("Please enter Date of Birth.");
+    return;
+  }
+
   const seller = {
     shopName: shopName.value,
     ownerName: ownerName.value,
-    age: age.value,
+    dob: dobVal,
     address: address.value,
     phone: phone.value,
     items: []
   };
 
+  alert("Seller Registered Successfully");
   localStorage.setItem("seller", JSON.stringify(seller));
   location.href = "seller.html";
 }

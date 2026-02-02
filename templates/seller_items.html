@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seller Items</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h2>Available Grocery Items</h2>
+    <div id="sellerTitle" style="margin-bottom: 8px;"></div>
+
+    <div id="status"></div>
+    <div id="items"></div>
+
+    <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
+      <a href="/sellers"><button class="user-button" type="button">Back to Sellers</button></a>
+      <button class="user-button" type="button" onclick="goManageItems()">Manage Items (Add/Edit)</button>
+      <a href="/seller-portal"><button class="user-button" type="button">Back to Seller Portal</button></a>
+      <a href="/"><button class="user-button" type="button">Home</button></a>
+    </div>
+  </div>
+
+<script>
+function loadSellersCompat() {
+  try {
+    const raw = localStorage.getItem("sellers");
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+
+  // Back-compat: localStorage["seller"] = { ... }
+  try {
+    const oneRaw = localStorage.getItem("seller");
+    const one = oneRaw ? JSON.parse(oneRaw) : null;
+    if (one && typeof one === "object") return [one];
+  } catch {}
+
+  return [];
+}
+
+function esc(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function num(x) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getQueryParam(name) {
+  const url = new URL(window.location.href);
+  return url.searchParams.get(name);
+}
+
+function setActiveSellerId(id) {
+  if (!id) return;
+  sessionStorage.setItem("activeSellerId", id);
+  localStorage.setItem("activeSellerId", id);
+}
+
+function goManageItems() {
+  const id = getQueryParam("id");
+  if (id) {
+    setActiveSellerId(id);
+  }
+  window.location.href = "/seller";
+}
+
+function findSeller(sellers) {
+  const id = getQueryParam("id");
+  const phone = getQueryParam("phone");
+  const idxRaw = getQueryParam("idx");
+
+  if (id) {
+    const byId = sellers.find(s => String(s.id || "") === String(id));
+    if (byId) return byId;
+  }
+
+  if (phone) {
+    const byPhone = sellers.find(s => String(s.phone || "") === String(phone));
+    if (byPhone) return byPhone;
+  }
+
+  if (idxRaw !== null) {
+    const idx = Number(idxRaw);
+    if (Number.isInteger(idx) && idx >= 0 && idx < sellers.length) return sellers[idx];
+  }
+
+  return null;
+}
+
+function render() {
+  const sellers = loadSellersCompat();
+  const status = document.getElementById("status");
+  const itemsRoot = document.getElementById("items");
+  const title = document.getElementById("sellerTitle");
+
+  const seller = findSeller(sellers);
+  if (!seller) {
+    title.innerHTML = "";
+    status.textContent = "Seller not found. Please go back and select a seller.";
+    itemsRoot.innerHTML = "";
+    return;
+  }
+
+  title.innerHTML = `<strong>${esc(seller.shopName || "Seller")}</strong> — ${esc(seller.ownerName || "")}`;
+
+  const list = Array.isArray(seller.items) ? seller.items : [];
+  if (!list.length) {
+    status.textContent = "No grocery items added by this seller yet.";
+    itemsRoot.innerHTML = "";
+    return;
+  }
+
+  status.textContent = `Total items: ${list.length}`;
+
+  itemsRoot.innerHTML = list.map((it) => {
+    const name = it.name ?? it.itemName ?? "Item";
+    const price = num(it.price);
+    const qty = num(it.qty || it.quantity || 0);
+    const qtyType = it.qtyType || it.quantityType || "";
+    const img = it.imageDataUrl ? `<img src="${it.imageDataUrl}" alt="${esc(name)}" style="width: 84px; height: 84px; object-fit: cover; border-radius: 10px;" />` : "";
+
+    return `
+      <div class="card" style="padding: 12px; margin: 10px 0; display: flex; gap: 12px; align-items: center;">
+        ${img}
+        <div>
+          <div><strong>${esc(name)}</strong></div>
+          <div>Price: ₹${price}</div>
+          <div>Quantity: ${qty}${qtyType ? " " + esc(qtyType) : ""}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+render();
+</script>
+</body>
+</html>

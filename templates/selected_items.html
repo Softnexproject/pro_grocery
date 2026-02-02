@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Selected Items</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h2>Selected Items</h2>
+    <div id="status"></div>
+    <div id="itemsList"></div>
+    <h3 id="total"></h3>
+
+    <div style="margin-top: 16px;">
+      <a href="/"><button type="button">Back to Home</button></a>
+    </div>
+  </div>
+
+<script>
+function loadSelectedItems() {
+  // Preferred: localStorage["cart"] = [{ name, price, qty }, ...]
+  try {
+    const raw = localStorage.getItem("cart");
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+
+  // Fallback: localStorage["selectedItems"]
+  try {
+    const raw = localStorage.getItem("selectedItems");
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+
+  return [];
+}
+
+function esc(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function num(x) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function render() {
+  const items = loadSelectedItems();
+  const status = document.getElementById("status");
+  const root = document.getElementById("itemsList");
+  const totalEl = document.getElementById("total");
+
+  if (!items.length) {
+    status.textContent = "No items selected.";
+    root.innerHTML = "";
+    totalEl.textContent = "";
+    return;
+  }
+
+  status.textContent = `Total line items: ${items.length}`;
+
+  let total = 0;
+  root.innerHTML = items.map((it) => {
+    const name = it.name ?? it.itemName ?? "Item";
+    const price = num(it.price);
+    const qty = Math.max(1, num(it.qty || it.quantity || 1));
+    const qtyType = it.qtyType || it.quantityType || "";
+    const img = it.imageDataUrl ? `<img src="${it.imageDataUrl}" alt="${esc(name)}" style="width: 72px; height: 72px; object-fit: cover; border-radius: 8px;" />` : "";
+    const lineTotal = price * qty;
+    total += lineTotal;
+
+    return `
+      <div class="card" style="padding: 12px; margin: 10px 0; display: flex; gap: 12px; align-items: center;">
+        ${img}
+        <div>
+          <strong>${esc(name)}</strong><br>
+          Price: ₹${price}<br>
+          Qty: ${qty}${qtyType ? " " + esc(qtyType) : ""}<br>
+          Line total: ₹${lineTotal}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  totalEl.textContent = `Grand Total: ₹${total}`;
+}
+
+render();
+</script>
+</body>
+</html>

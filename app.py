@@ -1,30 +1,41 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template
 
 app = Flask(__name__)
+
 
 @app.route("/")
 def home():
     return render_template("home_page.html")
 
 
-# ---------------- SELLER REGISTER ----------------
-@app.route("/seller_register", methods=["GET", "POST"])
+@app.route("/seller_register")
 def seller_register():
-    if request.method == "POST":
-        shop_name = request.form["shop_name"]
-        shopkeeper_name = request.form["shopkeeper_name"]
-        age = request.form["age"]
-        address = request.form["address"]
-        phone = request.form["phone"]
-
-        # TEMPORARY: just print to terminal
-        print("Seller Registered:")
-        print(shop_name, shopkeeper_name, age, address, phone)
-
-        # Redirect after submit (PRG pattern)
-        return redirect(url_for("home_page"))
-
     return render_template("seller_register.html")
+
+
+@app.route("/seller")
+def seller_dashboard():
+    return render_template("seller.html")
+
+
+@app.route("/seller-portal")
+def seller_portal():
+    return render_template("seller_portal.html")
+
+
+@app.route("/sellers")
+def sellers_list():
+    return render_template("sellers.html")
+
+
+@app.route("/seller-items")
+def seller_items():
+    return render_template("seller_items.html")
+
+
+@app.route("/selected-items")
+def selected_items():
+    return render_template("selected_items.html")
 
 
 if __name__ == "__main__":
